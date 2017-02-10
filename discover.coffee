@@ -1,4 +1,12 @@
-helpFile = '{inURI}'
+args = [];
+argCount = 0;
+process.argv.forEach (val, index, array) ->
+	if argCount > 1
+		args.push val.split "|"
+	++argCount
+
+if args && args[0] && args[0][0]
+	helpFile = args[0][0]
 
 a = helpFile.split "http://"
 s = a.pop()
@@ -105,12 +113,11 @@ request helpFile, (err, resp, body) ->
 					if $this.is "h3"
 						subject = camelCase $(this).text()
 					else if $this.is "table"
-						if !method[subject] then method[subject] = []
-						method[subject].push parseTable $this
+						#if !method[subject] then method[subject] = []
+						method[subject] = parseTable $this
 				++methodsFound
-				trace getDots methodsFound
+				#trace getDots methodsFound
 				if methodsFound == totalMethods
 					trace JSON.stringify r
 		)(i)
-
 		i++
