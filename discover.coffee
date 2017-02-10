@@ -1,4 +1,4 @@
-helpFile = '{serviceURI}'
+helpFile = '{inURI}'
 
 a = helpFile.split "http://"
 s = a.pop()
@@ -45,6 +45,12 @@ request helpFile, (err, resp, body) ->
 	"""
 	Get Top Level Data Object
 	"""
+	getDots = (count) ->
+		s = ''
+		c = count
+		while c--
+			s += '.'
+		return s + ' (' + count + ')'
 
 	parseTable = ($table) ->
 		a = []
@@ -59,11 +65,11 @@ request helpFile, (err, resp, body) ->
 		a
 
 	createRootDataObject = ($elements) ->
-		o = {services: []}
+		services = []
 		topic = ''
 		$elements.each ->
 			$this = $ this
-			if $this.is("h2")
+			if $this.is "h2"
 				topic = $this.text()
 			else
 				$this.find("tbody tr").each ->
@@ -74,31 +80,37 @@ request helpFile, (err, resp, body) ->
 					name = $apiName.text()
 					id = link.split("/").pop()
 					a = name.split " "
-					o.services.push
+					services.push
 						id: id
 						topic: topic
 						verb: a[0]
 						path: a[1]
 						description: description
 						detailPage: link
-		o
+		services
 	
 	r = createRootDataObject $(".main-content").children()
-	l = r.services.length
-	i = 0
+	totalMethods = l = r.length
+	methodsFound = i = 0
+	
 	while i < l
-		method = r.services[i]
-		request host + method.detailPage, (err, resp, body) ->
-			result = {}
-			subject = ''
-			$detail = cheerio.load body
-			$content = $detail ".main-content div"
-			$content.children().each ->
-				$this = $ this
-				if $this.is "h3"
-					subject = camelCase $(this).text()
-				else if $this.is "table"
-					if !result[subject] then result[subject] = []
-					result[subject].push parseTable $this
-				trace JSON.stringify result
+		((i) ->
+			method = r[i]
+			request host + method.detailPage, (err, resp, body) ->
+				subject = ''
+				$detail = cheerio.load body
+				$content = $detail ".main-content div"
+				$content.children().each ->
+					$this = $ this
+					if $this.is "h3"
+						subject = camelCase $(this).text()
+					else if $this.is "table"
+						if !method[subject] then method[subject] = []
+						method[subject].push parseTable $this
+				++methodsFound
+				trace getDots methodsFound
+				if methodsFound == totalMethods
+					trace JSON.stringify r
+		)(i)
+
 		i++
