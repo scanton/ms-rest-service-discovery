@@ -23,7 +23,9 @@ getAction = (str) ->
 		return 'remove'
 	return str.toLowerCase()
 concatPath = (str) ->
-	str.split("{").join("' . $").split("}").join(" . '")
+	s = str.split("{").join("' . $").split("}").join(" . '")
+	l = s.length
+	s.slice 0, l - 3
 getPhpParams = (params, verb) ->
 	if !params
 		return ''
@@ -56,13 +58,17 @@ class " + args[1][0] + " extends RestConnector {
 	}
 "
 	l = data.length
-	while l--
-		d = data[l]
+	i = 0
+	while i < l
+		d = data[i]
 		name = getName d
-		#trace getAction(d.verb)
+		action = getAction d.verb
+		params = addParams d.verb
 		if d.uriParameters
-			s += ' public function ' + name + '(' + getPhpParams(d.uriParameters, d.verb) + addParams(d.verb) + ') { return $this->' + getAction(d.verb) + '("' + concatPath(d.path) + '"); }'
+			phpParams = getPhpParams d.uriParameters, d.verb
+			path = concatPath d.path
+			s += ' public function ' + name + '(' +  phpParams + ') { return $this->' + action + "('" + path + ' ' + params + '); }'
 		else 
-			s += ' public function ' + name + '() { return $this->' + getAction(d.verb) + '("' + d.path + '"' + addParams(d.verb) + '); }'
-
+			s += ' public function ' + name + '() { return $this->' + action + '(\'' + d.path + '\'' + params + '); }'
+		++i
 	trace s + '}'
