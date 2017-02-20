@@ -71,7 +71,43 @@ request helpFile, (err, resp, body) ->
 				o[label] = value
 			a.push o
 		a
-
+	
+	getDefaultParam = (type) ->
+		if(type == 'integer')
+			return 0
+		else if(type == 'decimal number')
+			return 0.0
+		else if(type == 'boolean')
+			return false
+		else if(type == 'globally unique identifier')
+			return '00000000-0000-0000-0000-000000000000'
+		else
+			return ''
+			
+	createSample = (arr) ->
+		o = {}
+		l = arr.length
+		i = 0
+		while i < l
+			param = arr[i]
+			o[param.name] = getDefaultParam param.type
+			++i
+		return o
+		
+	addSamples = (data) ->
+		l = data.length
+		i = 0
+		while i < l
+			item = data[i]
+			if item.uriParameters
+				item.uriSample = createSample item.uriParameters
+			if item.bodyParameters
+				item.bodySample = createSample item.bodyParameters
+			if item.resourceDescription
+				item.resourceSample = createSample item.resourceDescription
+			++i
+		return data
+	
 	createRootDataObject = ($elements) ->
 		services = []
 		topic = ''
@@ -116,8 +152,7 @@ request helpFile, (err, resp, body) ->
 						#if !method[subject] then method[subject] = []
 						method[subject] = parseTable $this
 				++methodsFound
-				#trace getDots methodsFound
 				if methodsFound == totalMethods
-					trace JSON.stringify r
+					trace JSON.stringify addSamples r
 		)(i)
 		i++
