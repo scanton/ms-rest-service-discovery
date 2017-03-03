@@ -1,6 +1,7 @@
 #coffee generateApi.coffee ./access.json LPAccessAPI
 
 fs = require 'fs'
+mkdirp = require 'mkdirp'
 
 args = [];
 argCount = 0;
@@ -36,7 +37,7 @@ getPhpParams = (params, verb, body) ->
 		bodyCount = body.length
 	else
 		bodyCount = 0
-	if !params
+	if !params && !body
 		return ''
 	a = []
 	for i of params
@@ -69,17 +70,21 @@ createAjaxCall = (method) ->
 	result = "<?php header('Content-Type: application/json'); set_include_path('../../../'); include_once('common/ajax_bootstrap.php'); "
 	result += getUrlSessionParams method.uriParameters
 	if method.bodyParameters
-		result += " $bodyParams = json_decode($_POST['details']); \n\r"
+		result += " $bodyParams = json_decode($_POST['bodyParams']); \n\r"
 	result += ' $result = ' + instanceName + '->' + name + '(' + getPhpParams(method.uriParameters, method.verb, method.bodyParameters) + ');'
 	result += ' echo json_encode($result); \n\r ?>'
 
 	dir = './' + className + '/js/ajax/' + className + '/'
-	fs.writeFile dir + name + '.php', result, (err) ->
+	mkdirp dir, (err) ->
 		if err
-			trace err
+			console.error err
 		else
-			trace dir + name + '.php was saved'
-
+			fs.writeFile dir + name + '.php', result, (err) ->
+				if err
+					trace err
+				else
+					#trace dir + name + '.php was saved'
+	
 data = require uri
 if data && className
 	s = "<?php
@@ -116,10 +121,13 @@ class " + className + " extends RestConnector {
 		++i
 	api = s + '}'
 	dir = './' + className + '/src/'
-	#if !fs.existsSync dir
-	#	fs.mkdirSync dir
-	fs.writeFile dir + className + '.php', api, (err) ->
+	
+	mkdirp dir, (err) ->
 		if err
-			trace err
+			console.error err
 		else
-			trace dir + className + '.php was saved'
+			fs.writeFile dir + className + '.php', api, (err) ->
+				if err
+					console.error err
+				else
+					#trace dir + className + '.php was saved'
