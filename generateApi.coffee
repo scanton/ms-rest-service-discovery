@@ -1,5 +1,7 @@
 #coffee generateApi.coffee ./access.json LPAccessAPI
 
+trace = console.log
+
 fs = require 'fs'
 mkdirp = require 'mkdirp'
 
@@ -14,16 +16,35 @@ if args && args[0] && args[0][0] && args[1][0]
 	uri = args[0][0]
 
 className = args[1][0]
+instanceName = '$' + className.slice(0, 1).toLowerCase() + className.slice(1)
+usedNames = []
 
-trace = console.log
-
+isInArray = (arr, val) ->
+	l = arr.length
+	while l--
+		if arr[l] == val
+			return true
+	return false
 getName = (methodData) ->
 	verb = methodData.verb.toLowerCase()
 	a = methodData.path.split('{')[0].split '/'
 	l = a.length
 	while l--
 		if a[l] != ''
-			return verb.toLowerCase() + a[l]
+			newName = verb.toLowerCase() + a[l]
+			#if newName == 'getv1'
+			#	trace methodData
+			if isInArray usedNames, newName
+				option = 2
+				altName = newName + option
+				while isInArray usedNames, altName
+					++option
+					altName = newName + option
+				usedNames.push altName
+				return altName
+			else
+				usedNames.push newName
+				return newName
 getAction = (str) ->
 	if str.toLowerCase() == 'delete'
 		return 'remove'
@@ -63,10 +84,7 @@ getUrlSessionParams = (params) ->
 			result += ' $' + p.name + " = $_GET['" + p.name + "'] ? " + "$_GET['" + p.name + "'] : $_SESSION['" + p.name + "']; \n\r"
 			++i
 	result
-createAjaxCall = (method) ->
-	if !instanceName
-		instanceName = '$access'
-	name = getName method
+createAjaxCall = (method, name, instanceName = '$undefinedAPI') ->
 	result = "<?php header('Content-Type: application/json'); set_include_path('../../../'); include_once('common/ajax_bootstrap.php'); "
 	result += getUrlSessionParams method.uriParameters
 	if method.bodyParameters
@@ -81,7 +99,7 @@ createAjaxCall = (method) ->
 		else
 			fs.writeFile dir + name + '.php', result, (err) ->
 				if err
-					trace err
+					console.error err
 				else
 					#trace dir + name + '.php was saved'
 	
@@ -105,8 +123,8 @@ class " + className + " extends RestConnector {
 	i = 0
 	while i < l
 		d = data[i]
-		createAjaxCall d
 		name = getName d
+		createAjaxCall d, name, instanceName
 		action = getAction d.verb
 		params = addParams d.verb, d.bodyParameters
 		if d.uriParameters
