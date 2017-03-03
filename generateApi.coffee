@@ -32,8 +32,6 @@ getName = (methodData) ->
 	while l--
 		if a[l] != ''
 			newName = verb.toLowerCase() + a[l]
-			#if newName == 'getv1'
-			#	trace methodData
 			if isInArray usedNames, newName
 				option = 2
 				altName = newName + option
@@ -81,16 +79,16 @@ getUrlSessionParams = (params) ->
 		i = 0
 		while i < l
 			p = params[i]
-			result += ' $' + p.name + " = $_GET['" + p.name + "'] ? " + "$_GET['" + p.name + "'] : $_SESSION['" + p.name + "']; \n\r"
+			result += '\n\r\t$' + p.name + " = $_GET['" + p.name + "'] ? " + "$_GET['" + p.name + "'] : $_SESSION['" + p.name + "'];"
 			++i
 	result
 createAjaxCall = (method, name, instanceName = '$undefinedAPI') ->
-	result = "<?php header('Content-Type: application/json'); set_include_path('../../../'); include_once('common/ajax_bootstrap.php'); "
+	result = "<?php \n\r\theader('Content-Type: application/json'); \n\r\tset_include_path('../../../'); \n\r\tinclude_once('common/ajax_bootstrap.php');  \n\r"
 	result += getUrlSessionParams method.uriParameters
 	if method.bodyParameters
-		result += " $bodyParams = json_decode($_POST['bodyParams']); \n\r"
-	result += ' $result = ' + instanceName + '->' + name + '(' + getPhpParams(method.uriParameters, method.verb, method.bodyParameters) + ');'
-	result += ' echo json_encode($result); \n\r ?>'
+		result += "\n\r\t$bodyParams = json_decode($_POST['bodyParams']); \n\r"
+	result += '\n\r\n\r\t$result = ' + instanceName + '->' + name + '(' + getPhpParams(method.uriParameters, method.verb, method.bodyParameters) + '); \n\r'
+	result += '\n\r\techo json_encode($result); \n\r ?>'
 
 	dir = './' + className + '/js/ajax/' + className + '/'
 	mkdirp dir, (err) ->
@@ -101,23 +99,25 @@ createAjaxCall = (method, name, instanceName = '$undefinedAPI') ->
 				if err
 					console.error err
 				else
-					#trace dir + name + '.php was saved'
+					trace dir + name + '.php was saved'
 	
 data = require uri
 if data && className
-	s = "<?php
+	s = "<?php \n\r
 
-require_once('RestConnector.php');
+\trequire_once('RestConnector.php'); \n\r
 
-class " + className + " extends RestConnector {
+\tclass " + className + " extends RestConnector \n\r
+\t{ \n\r
 	
-	public $serviceUri = '';
-	public $testMode = false;
-	
-	public function __construct($testMode = false, $serviceUri) {
-		$this->serviceUri = $serviceUri;
-		$this->testMode = $testMode;
-	}
+\t\tpublic $serviceUri = ''; \n\r
+\t\tpublic $testMode = false; \n\r
+\n\r	
+\t\tpublic function __construct($testMode = false, $serviceUri) \n\r
+\t\t{\n\r
+\t\t\t$this->serviceUri = $serviceUri; \n\r
+\t\t\t$this->testMode = $testMode; \n\r
+\t\t} \n\r\n\r
 "
 	l = data.length
 	i = 0
@@ -130,14 +130,14 @@ class " + className + " extends RestConnector {
 		if d.uriParameters
 			phpParams = getPhpParams d.uriParameters, d.verb, d.bodyParameters
 			path = concatPath d.path
-			s += ' public function ' + name + '(' +  phpParams + ') { return $this->' + action + "('" + path + ' ' + params + '); }'
+			s += ' \t\tpublic function ' + name + '(' +  phpParams + ') \n\r\t\t{  \n\r\t\t\treturn $this->' + action + "('" + path + ' ' + params + '); \n\r\t\t}  \n\r'
 		else 
 			if d.bodyParameters
-				s += ' public function ' + name + '($bodyParams) { return $this->' + action + '(\'' + d.path + '\'' + params + '); }'
+				s += ' \t\tpublic function ' + name + '($bodyParams) \n\r\t\t{ \n\r\t\t\treturn $this->' + action + '(\'' + d.path + '\'' + params + ');  \n\r\t\t} \n\r'
 			else
-				s += ' public function ' + name + '() { return $this->' + action + '(\'' + d.path + '\'' + params + '); }'
+				s += ' \t\tpublic function ' + name + '() \n\r\t\t{ \n\r\t\t\treturn $this->' + action + '(\'' + d.path + '\'' + params + '); \n\r\t\t} \n\r'
 		++i
-	api = s + '}'
+	api = s + '\t}'
 	dir = './' + className + '/src/'
 	
 	mkdirp dir, (err) ->
@@ -148,4 +148,4 @@ class " + className + " extends RestConnector {
 				if err
 					console.error err
 				else
-					#trace dir + className + '.php was saved'
+					trace dir + className + '.php was saved'
